@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Five</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">Top Five</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="">About</a>
+        </div>
+    </nav>
+
+    <main class="prompt-input">
+        <h2>Derive Clips</h2>
+
+        <form id="clip-form" method="POST">
+            <div class="field">
+                <label for="prompt">Prompt for derived clips</label>
+                <input type="text" id="prompt" name="prompt" placeholder="Describe what clips to find...">
+            </div>
+
+            <div class="field">
+                <label for="num-clips">Number of Clips</label>
+                <select id="num-clips" name="num_clips">
+                    {% for i in range(1, 11) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Clip</button>
+        </form>
+    </main>
+
+    <section class="clips-region">
+        <h3>Generated Clips</h3>
+        <div class="clips-grid" id="clips-grid">
+            <p>clisp go here</p>
+        </div>
+    </section>
+
+</body>
+</html>

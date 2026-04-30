@@ -1,0 +1,74 @@
+* {
+    font-family: "Noto Sans Display", sans-serif
+}
+
+/* pallete: https://coolors.co/palette/6b9080-a4c3b2-cce3de-eaf4f4-f6fff8 */
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    background-color: #CCE3DE;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar {
+    position: relative;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: row;
+
+    background-color: #A4C3B2;
+    align-items: center;
+    justify-content: space-between;
+
+    width: calc(100% - 40px);
+    padding: 20px;
+    margin: 0;
+}
+
+.nav-logo {
+    font-size: 2em;
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links a {
+    text-decoration: none;
+}
+
+#clip-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 40vw;
+}
+
+#prompt::placeholder {
+    color: #F6FFF8;
+}
+
+.field #prompt, .field #num-clips {
+    background-color: #A4C3B2;
+    border: 2px solid #6B9080;
+    color: #EAF4F4;
+}
