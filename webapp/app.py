@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
+ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
+
+def allowed_video(filename): #Ensures only videos are able to be chosen 
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
 def index():
@@ -8,16 +12,25 @@ def index():
 
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
-    if request.method == "POST" and request.files.get("file"):
-        file = request.files.get("file")
-        file_data = file.read()  # file is in memory only rn
-        return render_template("upload.html", filename=file.filename)
-
     if request.method == "POST":
+        video = request.files.get("video")
         prompt = request.form.get("prompt")
         num_clips = request.form.get("num_clips")
-        # AI call goes here
-        return render_template("upload.html", prompt=prompt, num_clips=num_clips)
+
+        if not video or video.filename == "":
+            return render_template("upload.html", error="Please upload a video.")
+
+        if not allowed_video(video.filename):
+            return render_template("upload.html", error="Only video files are allowed.")
+
+        file_data = video.read()  #Temporary for now
+
+        return render_template(
+            "upload.html",
+            filename=video.filename,
+            prompt=prompt,
+            num_clips=num_clips
+        )
 
     return render_template("upload.html")
 

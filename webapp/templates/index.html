@@ -23,7 +23,7 @@
     <main class="input" id="drop-zone">
         <h2> Clip your Video (Placeholder Title) </h2>
         <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
-            <input type="file" id="file-input" name="file" hidden>
+            <input type="file" id="file-input" name="video" accept="video/*" hidden>            
             <button type="button" id="upload" onclick="document.getElementById('file-input').click()">
                 Choose Video
             </button>
@@ -36,6 +36,10 @@
         const fileInput = document.getElementById("file-input")
         const fileName = document.getElementById("file-name")
 
+        function isVideo(file) {
+        return file && file.type.startsWith("video/")
+        }
+
         dropZone.addEventListener("dragover", (e) => {
             e.preventDefault();
             dropZone.classList.add("dragover")
@@ -46,19 +50,30 @@
         })
 
         dropZone.addEventListener("drop", (e) => {
-            e.preventDefault();
+            e.preventDefault()
             dropZone.classList.remove("dragover")
+
             const file = e.dataTransfer.files[0]
-            if (file) {
-                fileInput.files = e.dataTransfer.files
-                document.getElementById("upload-form").submit()
+
+            if (!isVideo(file)) {
+                alert("Please upload a video file.")
+                return
             }
+
+            fileInput.files = e.dataTransfer.files
+            document.getElementById("upload-form").submit()
         })
 
         fileInput.addEventListener("change", () => {
-            if (fileInput.files[0]) {
-                document.getElementById("upload-form").submit()
+            const file = fileInput.files[0]
+
+            if (!isVideo(file)) {
+                alert("Please upload a video file.")
+                fileInput.value = ""
+                return
             }
+
+            document.getElementById("upload-form").submit()
         })
     </script>
 

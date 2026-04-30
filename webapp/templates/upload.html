@@ -19,11 +19,13 @@
             <a href="">About</a>
         </div>
     </nav>
-
+    
+    
     <main class="prompt-input">
         <h2>Derive Clips</h2>
 
-        <form id="clip-form" method="POST">
+        <form id="clip-form" method="POST" action="/upload" enctype="multipart/form-data">            
+            
             <div class="field">
                 <label for="prompt">Prompt for derived clips</label>
                 <input type="text" id="prompt" name="prompt" placeholder="Describe what clips to find...">
