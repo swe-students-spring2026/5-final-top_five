@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
 </head>
 
 <body>
@@ -22,7 +22,7 @@
 
     <main class="input" id="drop-zone">
         <h2> Clip your Video (Placeholder Title) </h2>
-        <form id="upload-form" enctype="multipart/form-data">
+        <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
             <input type="file" id="file-input" name="file" hidden>
             <button type="button" id="upload" onclick="document.getElementById('file-input').click()">
                 Choose Video
@@ -32,32 +32,34 @@
     </main>
 
     <script>
-        const dropZone = document.getElementById("drop-zone");
-        const fileInput = document.getElementById("file-input");
-        const fileName = document.getElementById("file-name");
+        const dropZone = document.getElementById("drop-zone")
+        const fileInput = document.getElementById("file-input")
+        const fileName = document.getElementById("file-name")
 
         dropZone.addEventListener("dragover", (e) => {
             e.preventDefault();
-            dropZone.classList.add("dragover");
-        });
+            dropZone.classList.add("dragover")
+        })
 
         dropZone.addEventListener("dragleave", () => {
-            dropZone.classList.remove("dragover");
-        });
+            dropZone.classList.remove("dragover")
+        })
 
         dropZone.addEventListener("drop", (e) => {
             e.preventDefault();
-            dropZone.classList.remove("dragover");
-            const file = e.dataTransfer.files[0];
+            dropZone.classList.remove("dragover")
+            const file = e.dataTransfer.files[0]
             if (file) {
-                fileInput.files = e.dataTransfer.files;
-                fileName.textContent = file.name;
+                fileInput.files = e.dataTransfer.files
+                document.getElementById("upload-form").submit()
             }
-        });
+        })
 
         fileInput.addEventListener("change", () => {
-            fileName.textContent = fileInput.files[0] ? fileInput.files[0].name : "No file chosen";
-        });
+            if (fileInput.files[0]) {
+                document.getElementById("upload-form").submit()
+            }
+        })
     </script>
 
 </body>
