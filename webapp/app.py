@@ -1,5 +1,12 @@
 from flask import Flask, render_template, request
+import os
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
+load_dotenv()
+
+client = MongoClient(os.getenv("MONGO_URI"))
+db = client["topfive"]
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
 
@@ -33,6 +40,11 @@ def upload():
         )
 
     return render_template("upload.html")
+
+@app.route("/test-db")
+def test_db():
+    db.test.insert_one({"msg": "hello"})
+    return "Inserted into DB!"
 
 if __name__ == "__main__":
     app.run(debug=True, port=3000)
