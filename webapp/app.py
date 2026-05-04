@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
+from bson import ObjectId
+import requests
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -10,6 +12,7 @@ load_dotenv()
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
 UPLOAD_FOLDER = "uploads"
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8000")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -53,27 +56,65 @@ def upload_video():
 
 @app.route("/generate-clips", methods=["POST"])
 def generate_clips():
-    prompt = request.form.get("prompt")
+    prompt = (request.form.get("prompt") or "").strip()
     num_clips = int(request.form.get("num_clips", 1))
     filename = request.form.get("filename")
 
     if not prompt:
-        return render_template("upload.html", error="Please enter a prompt.")
+        return render_template("upload.html", filename=filename, error="Please enter a prompt.")
 
-    # Update DB with prompt info
-    db.videos.update_one(
-        {"filename": filename},
-        {"$set": {
-            "prompt": prompt,
-            "num_clips": num_clips
-        }}
-    )
+    video = db.videos.find_one({"filename": filename})
+    if not video:
+        return render_template("upload.html", filename=filename, error="Video not found. Please upload again.")
 
-    return render_template(
-    "upload.html",
-    filename=filename,
-    success="Clips are being generated!"
-)
+    job_id = db.jobs.insert_one({
+        "video_id": video["_id"],
+        "prompt": prompt,
+        "num_clips": num_clips,
+        "status": "queued",
+        "error": None,
+        "created_at": datetime.utcnow(),
+        "completed_at": None,
+        "clip_ids": [],
+    }).inserted_id
+
+    try:
+        resp = requests.post(
+            f"{AI_SERVICE_URL}/jobs",
+            json={
+                "job_id": str(job_id),
+                "video_id": str(video["_id"]),
+                "video_path": os.path.abspath(video["filepath"]),
+                "prompt": prompt,
+                "num_clips": num_clips,
+            },
+            timeout=5,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        db.jobs.update_one(
+            {"_id": job_id},
+            {"$set": {"status": "failed", "error": f"ai-service unreachable: {exc}"}},
+        )
+
+    return redirect(url_for("job_status", job_id=str(job_id)))
+
+
+@app.route("/jobs/<job_id>")
+def job_status(job_id):
+    try:
+        oid = ObjectId(job_id)
+    except Exception:
+        return render_template("job.html", error="Invalid job id."), 404
+
+    job = db.jobs.find_one({"_id": oid})
+    if not job:
+        return render_template("job.html", error="Job not found."), 404
+
+    clips = list(db.clips.find({"job_id": oid}).sort("rank", 1)) if job["status"] == "done" else []
+    return render_template("job.html", job=job, clips=clips, job_id=job_id)
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=3000)
 
