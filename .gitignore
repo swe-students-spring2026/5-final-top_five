@@ -124,6 +124,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# ai-service runtime output
+ai-service/data/
+
 # Spyder project settings
 .spyderproject
 .spyproject
