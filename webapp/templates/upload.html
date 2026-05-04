@@ -23,19 +23,27 @@
     
     <main class="prompt-input">
         <h2>Derive Clips</h2>
-
-        <form id="clip-form" method="POST" action="/upload" enctype="multipart/form-data">            
-            
-            <div class="field">
-                <label for="video">Upload Video</label>
-                <input type="file" id="video" name="video" accept="video/*" required>
-            </div>
-
+    
+        {% if filename %}
+            <p>Uploaded video: {{ filename }}</p>
+        {% endif %}
+    
+        {% if error %}
+            <p>{{ error }}</p>
+        {% endif %}
+    
+        {% if success %}
+            <p>{{ success }}</p>
+        {% endif %}
+    
+        <form id="clip-form" method="POST" action="/generate-clips">
+            <input type="hidden" name="filename" value="{{ filename }}">
+    
             <div class="field">
                 <label for="prompt">Prompt for derived clips</label>
-                <input type="text" id="prompt" name="prompt" placeholder="Describe what clips to find...">
+                <input type="text" id="prompt" name="prompt" placeholder="Describe what clips to find..." required>
             </div>
-
+    
             <div class="field">
                 <label for="num-clips">Number of Clips</label>
                 <select id="num-clips" name="num_clips">
@@ -44,8 +52,8 @@
                     {% endfor %}
                 </select>
             </div>
-
-            <button type="submit">Clip</button>
+    
+            <button type="submit">Generate Clips</button>
         </form>
     </main>
 

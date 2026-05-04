@@ -22,8 +22,7 @@
 
     <main class="input" id="drop-zone">
         <h2> Clip your Video (Placeholder Title) </h2>
-        <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
-            <input type="file" id="file-input" name="video" accept="video/*" hidden>            
+        <form id="upload-form" action="/upload-video" method="POST" enctype="multipart/form-data">            <input type="file" id="file-input" name="video" accept="video/*" hidden>            
             <button type="button" id="upload" onclick="document.getElementById('file-input').click()">
                 Choose Video
             </button>
@@ -34,8 +33,7 @@
     <script>
         const dropZone = document.getElementById("drop-zone")
         const fileInput = document.getElementById("file-input")
-        const fileName = document.getElementById("file-name")
-
+        
         function isVideo(file) {
         return file && file.type.startsWith("video/")
         }
