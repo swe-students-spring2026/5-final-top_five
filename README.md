@@ -22,11 +22,11 @@
 
 | Name | GitHub |
 |---|---|
-| Gavin Chen | [@overyander](https://github.com/OverYander) |
-| Zhihui | []() |
-| Alan | []() |
-| Wonden | []() |
-| George | [@sanabriageorge](https://github.com/sanabriageorge) | 
+| Gavin Chen | [@OverYander](https://github.com/OverYander) |
+| Zhihui Chen | [@Zhi-Hui-C](https://github.com/Zhi-Hui-C) |
+| Alan Wang | [@aw4630](https://github.com/aw4630) |
+| Wonden Geng | [@wondeng](https://github.com/wondeng) |
+| George Sanabria | [@sanabriageorge](https://github.com/sanabriageorge) |
 
 ---
 

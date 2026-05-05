@@ -31,7 +31,8 @@ def test_create_job_validates_prompt():
 
 def test_create_job_runs_pipeline_and_writes_clips():
     fake_db = MagicMock()
-    with patch.object(main.db, "get_db", return_value=fake_db), \
+    with patch.object(main, "USE_MOCKS", True), \
+         patch.object(main.db, "get_db", return_value=fake_db), \
          patch.object(main.db, "set_job_status") as set_status, \
          patch.object(main.db, "insert_clip") as insert_clip:
         client = TestClient(main.app)

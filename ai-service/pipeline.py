@@ -191,6 +191,10 @@ def score_windows_real(prompt: str, windows: list[Window]) -> list[ScoredWindow]
     return scored
 
 
+def cut_clip_mock(video_path: str, start: float, end: float, out_path: str) -> str:
+    return out_path
+
+
 def cut_clip_real(video_path: str, start: float, end: float, out_path: str) -> str:
     duration = end - start
 

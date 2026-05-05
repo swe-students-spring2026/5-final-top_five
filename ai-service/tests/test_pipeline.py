@@ -113,7 +113,9 @@ def test_transcribe_real_converts_whisper_segments(monkeypatch):
         Segment(0.0, 5.0, "hello"),
         Segment(5.0, 10.0, "world"),
     ]
-    fake_model.transcribe.assert_called_once_with("/path/to/video.mp4")
+    fake_model.transcribe.assert_called_once()
+    args, _kwargs = fake_model.transcribe.call_args
+    assert args[0] == "/path/to/video.mp4"
 
 
 def test_get_whisper_model_caches_singleton(monkeypatch):
