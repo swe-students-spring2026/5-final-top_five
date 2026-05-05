@@ -120,4 +120,15 @@ cd ../ai-service && pipenv run pytest
 
 ## Deployment
 
-_(Digital Ocean droplet + Docker Hub images — to be added.)_
+The webapp and ai-service are containerized and can be deployed to any Docker-friendly host with **long-running compute** and **persistent storage** (i.e. not serverless function platforms like Vercel/Netlify — Whisper transcription routinely exceeds their per-invocation time limits).
+
+Suitable free hosts:
+
+- **Render** *(recommended)* — connect the GitHub repo, point at each subsystem's Dockerfile, configure env vars. Cold-starts after 15 min idle on the free tier.
+- **Fly.io** — Docker-based, generous free tier with persistent volumes; CLI-heavy setup.
+- **Koyeb** — one always-on free service.
+- **Digital Ocean droplet** — $6/mo, both services + Mongo via `docker-compose`.
+
+Container images are published to Docker Hub via CI on each merge to `main`.
+
+_(Specific deploy targets and Docker Hub image links — to be added.)_
