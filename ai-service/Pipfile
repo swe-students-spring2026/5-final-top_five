@@ -12,6 +12,7 @@ ffmpeg-python = "*"
 anthropic = "*"
 uvicorn = "*"
 faster-whisper = "*"
+requests = "*"
 
 [dev-packages]
 pytest = "*"

@@ -89,7 +89,8 @@ def _run_job(req: JobRequest) -> None:
 
         db.set_job_status(database, req.job_id, "ranking")
         windows = pipeline.pack_windows(segments)
-        scored = pipeline.score_windows_mock(req.prompt, windows)
+        score = pipeline.score_windows_mock if USE_MOCKS else pipeline.score_windows_real
+        scored = score(req.prompt, windows)
         top = pipeline.select_top_n(scored, req.num_clips)
 
         db.set_job_status(database, req.job_id, "cutting")
