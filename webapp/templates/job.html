@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Five — Job</title>
+
+    {% if job and job.status not in ("done", "failed") %}
+    <meta http-equiv="refresh" content="3">
+    {% endif %}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">Top Five</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+        </div>
+    </nav>
+
+    <main class="prompt-input">
+        {% if error %}
+            <h2>{{ error }}</h2>
+
+        {% elif job.status == "failed" %}
+            <h2>Job failed</h2>
+            <p>{{ job.error or "Unknown error." }}</p>
+            <p><a href="/">Try another video</a></p>
+
+        {% elif job.status == "done" %}
+            <h2>Top {{ clips|length }} clips</h2>
+            <p>Prompt: <em>{{ job.prompt }}</em></p>
+
+            <section class="clips-region">
+                <div class="clips-grid">
+                    {% for clip in clips %}
+                    <div class="clip-card">
+                        <h3>#{{ clip.rank }} — score {{ "%.1f"|format(clip.score) }}</h3>
+                        <p>{{ "%.1f"|format(clip.start_sec) }}s &rarr; {{ "%.1f"|format(clip.end_sec) }}s</p>
+                        <p class="transcript">{{ clip.transcript }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+        {% else %}
+            <h2>Generating clips&hellip;</h2>
+            <p>Status: <strong>{{ job.status }}</strong></p>
+            <p>This page refreshes every 3 seconds.</p>
+        {% endif %}
+    </main>
+</body>
+</html>
