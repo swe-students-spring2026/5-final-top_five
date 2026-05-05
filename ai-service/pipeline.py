@@ -1,4 +1,6 @@
 import os
+import subprocess
+
 from dataclasses import dataclass
 
 from faster_whisper import WhisperModel
@@ -119,5 +121,21 @@ def score_windows_mock(prompt: str, windows: list[Window]) -> list[ScoredWindow]
     return scored
 
 
-def cut_clip_mock(video_path: str, start: float, end: float, out_path: str) -> str:
+def cut_clip_real(video_path: str, start: float, end: float, out_path: str) -> str:
+    duration = end - start
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i", video_path,
+            "-ss", str(start),
+            "-t", str(duration),
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            out_path,
+        ],
+        check=True,
+    )
+
     return out_path

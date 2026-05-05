@@ -40,7 +40,13 @@
                     {% for clip in clips %}
                     <div class="clip-card">
                         <h3>#{{ clip.rank }} — score {{ "%.1f"|format(clip.score) }}</h3>
-                        <p>{{ "%.1f"|format(clip.start_sec) }}s &rarr; {{ "%.1f"|format(clip.end_sec) }}s</p>
+                        
+                        <video width="100%" controls>
+                            <source src="/clips/{{ clip.storage_path.split('/')[-1] }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    
+                        <p>{{ "%.1f"|format(clip.start_sec) }}s → {{ "%.1f"|format(clip.end_sec) }}s</p>
                         <p class="transcript">{{ clip.transcript }}</p>
                     </div>
                     {% endfor %}

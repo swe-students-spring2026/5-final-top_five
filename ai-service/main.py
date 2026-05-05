@@ -1,4 +1,6 @@
 import os
+from bson import ObjectId
+from datetime import datetime
 from pathlib import Path
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -14,6 +16,7 @@ CLIPS_DIR = STORAGE_DIR / "clips"
 CLIPS_DIR.mkdir(parents=True, exist_ok=True)
 
 USE_MOCKS = os.getenv("USE_MOCKS", "true").lower() == "true"
+print("USE_MOCKS =", USE_MOCKS)
 
 app = FastAPI(title="top-five ai-service")
 
@@ -41,6 +44,41 @@ def create_job(req: JobRequest, background: BackgroundTasks):
     background.add_task(_run_job, req)
     return {"job_id": req.job_id, "status": "queued"}
 
+def clean_for_json(value):
+    if isinstance(value, ObjectId):
+        return str(value)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, list):
+        return [clean_for_json(item) for item in value]
+
+    if isinstance(value, dict):
+        return {key: clean_for_json(val) for key, val in value.items()}
+
+    return value
+
+
+@app.get("/jobs/{job_id}")
+def get_job(job_id: str):
+    database = db.get_db()
+
+    job = database.jobs.find_one({"job_id": job_id})
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    clips = list(database.clips.find({
+    "$or": [
+        {"job_id": job_id},
+        {"job_id": ObjectId(job_id)}
+    ]
+}))
+
+    return {
+        "job": clean_for_json(job),
+        "clips": clean_for_json(clips)
+    }
 
 def _run_job(req: JobRequest) -> None:
     database = db.get_db()
@@ -57,7 +95,7 @@ def _run_job(req: JobRequest) -> None:
         db.set_job_status(database, req.job_id, "cutting")
         for rank, sw in enumerate(top, start=1):
             out_path = str(CLIPS_DIR / f"{req.job_id}_{rank}.mp4")
-            pipeline.cut_clip_mock(req.video_path, sw.window.start, sw.window.end, out_path)
+            pipeline.cut_clip_real(req.video_path, sw.window.start, sw.window.end, out_path)
             db.insert_clip(
                 database,
                 job_id=req.job_id,

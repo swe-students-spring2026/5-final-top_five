@@ -6,6 +6,7 @@ from bson import ObjectId
 import requests
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from flask import send_from_directory
 
 load_dotenv()
 
@@ -67,7 +68,7 @@ def generate_clips():
     if not video:
         return render_template("upload.html", filename=filename, error="Video not found. Please upload again.")
 
-    job_id = db.jobs.insert_one({
+    job_result = db.jobs.insert_one({
         "video_id": video["_id"],
         "prompt": prompt,
         "num_clips": num_clips,
@@ -76,13 +77,22 @@ def generate_clips():
         "created_at": datetime.utcnow(),
         "completed_at": None,
         "clip_ids": [],
-    }).inserted_id
+    })
+
+    job_id = str(job_result.inserted_id)
+
+    db.jobs.update_one(
+        {"_id": job_result.inserted_id},
+        {"$set": {"job_id": job_id}}
+    )
+    print("Sending job_id:", str(job_id))
+    print("Sending video_path:", os.path.abspath(video["filepath"]))
 
     try:
         resp = requests.post(
             f"{AI_SERVICE_URL}/jobs",
             json={
-                "job_id": str(job_id),
+                "job_id": job_id,
                 "video_id": str(video["_id"]),
                 "video_path": os.path.abspath(video["filepath"]),
                 "prompt": prompt,
@@ -93,7 +103,7 @@ def generate_clips():
         resp.raise_for_status()
     except requests.RequestException as exc:
         db.jobs.update_one(
-            {"_id": job_id},
+            {"_id": job_result.inserted_id},
             {"$set": {"status": "failed", "error": f"ai-service unreachable: {exc}"}},
         )
 
@@ -111,9 +121,18 @@ def job_status(job_id):
     if not job:
         return render_template("job.html", error="Job not found."), 404
 
-    clips = list(db.clips.find({"job_id": oid}).sort("rank", 1)) if job["status"] == "done" else []
+    clips = list(db.clips.find({
+        "$or": [
+            {"job_id": job_id},
+            {"job_id": oid}
+        ]
+    }).sort("rank", 1)) if job["status"] == "done" else []
+
     return render_template("job.html", job=job, clips=clips, job_id=job_id)
 
+@app.route("/clips/<filename>")
+def serve_clip(filename):
+    return send_from_directory("../ai-service/data/clips", filename)
 
 if __name__ == "__main__":
     app.run(debug=True, port=3000)

@@ -5,13 +5,13 @@ name = "pypi"
 
 [packages]
 fastapi = "*"
-uvicorn = {extras = ["standard"], version = "*"}
 pymongo = "*"
 python-dotenv = "*"
 pydantic = "*"
 ffmpeg-python = "*"
-faster-whisper = "*"
 anthropic = "*"
+uvicorn = "*"
+faster-whisper = "*"
 
 [dev-packages]
 pytest = "*"
