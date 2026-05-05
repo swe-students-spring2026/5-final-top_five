@@ -26,7 +26,7 @@
 | Zhihui | []() |
 | Alan | []() |
 | Wonden | []() |
-| George | []() | 
+| George | [@sanabriageorge](https://github.com/sanabriageorge) | 
 
 ---
 
