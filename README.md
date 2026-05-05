@@ -22,10 +22,11 @@
 
 | Name | GitHub |
 |---|---|
-| Gavin Chen | [@gavinchen8706](https://github.com/gavinchen8706) |
-| Zhihui | [@zhihui](https://github.com/zhihui) |
-| Alan | [@alan](https://github.com/alan) |
-| Wonden | [@wonden](https://github.com/wonden) |
+| Gavin Chen | [@overyander](https://github.com/OverYander) |
+| Zhihui | []() |
+| Alan | []() |
+| Wonden | []() |
+| George | []() | 
 
 ---
 
