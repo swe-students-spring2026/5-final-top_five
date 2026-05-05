@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Five — History</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">Top Five</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/history">History</a>
+        </div>
+    </nav>
+
+    <main class="prompt-input">
+        <h2>Past jobs</h2>
+
+        {% if not jobs %}
+            <p>No jobs yet. <a href="/">Upload a video</a> to get started.</p>
+        {% else %}
+            <section class="history-list">
+                {% for job in jobs %}
+                <a class="history-row" href="/jobs/{{ job._id }}">
+                    <div class="history-prompt">{{ job.prompt }}</div>
+                    <div class="history-meta">
+                        <span>{{ job.filename }}</span>
+                        <span>{{ job.num_clips }} clip{{ '' if job.num_clips == 1 else 's' }}</span>
+                        <span class="status status-{{ job.status }}">{{ job.status }}</span>
+                        <span>{{ job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at else '' }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

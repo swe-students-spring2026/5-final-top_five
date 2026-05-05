@@ -134,6 +134,17 @@ def job_status(job_id):
 def serve_clip(filename):
     return send_from_directory("../ai-service/data/clips", filename)
 
+
+@app.route("/history")
+def history():
+    jobs = list(db.jobs.find().sort("created_at", -1).limit(20))
+    video_ids = {j["video_id"] for j in jobs if j.get("video_id")}
+    videos_by_id = {v["_id"]: v for v in db.videos.find({"_id": {"$in": list(video_ids)}})}
+    for job in jobs:
+        video = videos_by_id.get(job.get("video_id"))
+        job["filename"] = video["filename"] if video else "(unknown)"
+    return render_template("history.html", jobs=jobs)
+
 if __name__ == "__main__":
     app.run(debug=True, port=3000)
 

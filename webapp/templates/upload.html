@@ -16,7 +16,7 @@
         <div class="nav-logo">Top Five</div>
         <div class="nav-links">
             <a href="/">Home</a>
-            <a href="">About</a>
+            <a href="/history">History</a>
         </div>
     </nav>
     
@@ -27,19 +27,11 @@
         {% if error %}
             <p style="color: red;">{{ error }}</p>
         {% endif %}
-    
+
         {% if filename %}
             <p>Uploaded video: {{ filename }}</p>
         {% endif %}
-    
-        {% if error %}
-            <p>{{ error }}</p>
-        {% endif %}
 
-        {% if filename %}
-            <p>Uploaded: {{ filename }}</p>
-        {% endif %}
-    
         {% if success %}
             <p>{{ success }}</p>
         {% endif %}
