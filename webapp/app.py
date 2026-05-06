@@ -7,8 +7,15 @@ import requests
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from flask import send_from_directory
+from pathlib import Path
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+REPO_DIR = BASE_DIR.parent
+
+# Load env vars from common project locations.
+load_dotenv(REPO_DIR / ".env")
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(REPO_DIR / "ai-service" / ".env")
 
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
@@ -17,8 +24,23 @@ AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8000")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/topfive"))
+client = MongoClient(
+    os.getenv("MONGO_URI", "mongodb://localhost:27017/topfive"),
+    serverSelectionTimeoutMS=5000,
+)
 db = client["topfive"]
+
+
+def to_json_safe(value):
+    if isinstance(value, ObjectId):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, list):
+        return [to_json_safe(v) for v in value]
+    if isinstance(value, dict):
+        return {k: to_json_safe(v) for k, v in value.items()}
+    return value
 
 
 def allowed_video(filename): #Ensures only videos are able to be chosen 
@@ -47,11 +69,17 @@ def upload_video():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     video.save(filepath)
 
-    db.videos.insert_one({
-        "filename": filename,
-        "filepath": filepath,
-        "uploaded_at": datetime.utcnow()
-    })
+    try:
+        db.videos.insert_one({
+            "filename": filename,
+            "filepath": filepath,
+            "uploaded_at": datetime.utcnow()
+        })
+    except Exception as exc:
+        return render_template(
+            "index.html",
+            error=f"Database connection failed. Check MONGO_URI. ({exc})",
+        ), 500
 
     return render_template("upload.html", filename=filename)
 
@@ -129,6 +157,22 @@ def job_status(job_id):
     }).sort("rank", 1)) if job["status"] == "done" else []
 
     return render_template("job.html", job=job, clips=clips, job_id=job_id)
+
+@app.route("/jobs-api/<job_id>")
+def job_status_api(job_id):
+    """JSON API endpoint for progress polling."""
+    try:
+        oid = ObjectId(job_id)
+    except Exception:
+        return {"error": "Invalid job id."}, 404
+    
+    job = db.jobs.find_one({"_id": oid})
+    if not job:
+        return {"error": "Job not found."}, 404
+    
+    job_data = to_json_safe(job)
+    
+    return {"job": job_data}, 200
 
 @app.route("/clips/<filename>")
 def serve_clip(filename):

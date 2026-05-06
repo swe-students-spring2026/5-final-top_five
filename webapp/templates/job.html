@@ -5,14 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top Five — Job</title>
 
-    {% if job and job.status not in ("done", "failed") %}
-    <meta http-equiv="refresh" content="3">
-    {% endif %}
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+    <style>
+        .progress-container {
+            margin: 2rem 0;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .stage-label {
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -56,8 +81,92 @@
 
         {% else %}
             <h2>Generating clips&hellip;</h2>
-            <p>Status: <strong>{{ job.status }}</strong></p>
-            <p>This page refreshes every 3 seconds.</p>
+            
+            <div class="progress-container">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-info">
+                    <span class="stage-label" id="stageLabel">{{ job.status }}</span>
+                    <span id="percentLabel">0%</span>
+                </div>
+            </div>
+
+            <script>
+                const jobId = "{{ job_id }}";
+                const stageConfig = {
+                    queued: { min: 5, max: 24, tick: 0.25 },
+                    transcribing: { min: 25, max: 68, tick: 0.35 },
+                    ranking: { min: 69, max: 86, tick: 0.45 },
+                    cutting: { min: 87, max: 98, tick: 0.4 },
+                    done: { min: 100, max: 100, tick: 0 },
+                    failed: { min: 0, max: 0, tick: 0 },
+                };
+
+                let currentStatus = "{{ job.status }}";
+                let progress = stageConfig[currentStatus]?.min ?? 0;
+
+                const progressFillEl = document.getElementById("progressFill");
+                const percentLabelEl = document.getElementById("percentLabel");
+                const stageLabelEl = document.getElementById("stageLabel");
+
+                function renderProgress() {
+                    const shown = Math.max(0, Math.min(100, progress));
+                    progressFillEl.style.width = shown.toFixed(1) + "%";
+                    percentLabelEl.textContent = Math.floor(shown) + "%";
+                    stageLabelEl.textContent = currentStatus;
+                }
+
+                function setStatus(nextStatus) {
+                    if (!stageConfig[nextStatus]) {
+                        return;
+                    }
+
+                    currentStatus = nextStatus;
+                    progress = Math.max(progress, stageConfig[nextStatus].min);
+                    renderProgress();
+
+                    if (nextStatus === "done" || nextStatus === "failed") {
+                        setTimeout(() => location.reload(), 500);
+                    }
+                }
+
+                function animateProgress() {
+                    if (currentStatus === "done" || currentStatus === "failed") {
+                        return;
+                    }
+
+                    const cfg = stageConfig[currentStatus] || stageConfig.queued;
+                    if (progress < cfg.max) {
+                        progress = Math.min(cfg.max, progress + cfg.tick);
+                        renderProgress();
+                    }
+                }
+
+                function pollStatus() {
+                    fetch(`/jobs-api/${jobId}`)
+                        .then((r) => r.json())
+                        .then((data) => {
+                            if (data?.job?.status) {
+                                setStatus(data.job.status);
+                            }
+
+                            if (currentStatus !== "done" && currentStatus !== "failed") {
+                                setTimeout(pollStatus, 1500);
+                            }
+                        })
+                        .catch((err) => {
+                            console.error("Poll error:", err);
+                            if (currentStatus !== "done" && currentStatus !== "failed") {
+                                setTimeout(pollStatus, 2000);
+                            }
+                        });
+                }
+
+                renderProgress();
+                setInterval(animateProgress, 250);
+                pollStatus();
+            </script>
         {% endif %}
     </main>
 </body>
