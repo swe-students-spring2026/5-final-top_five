@@ -142,7 +142,7 @@ def test_job_status_renders_in_progress(client):
     assert resp.status_code == 200
     assert b"Generating clips" in resp.data
     assert b"transcribing" in resp.data
-    assert b"http-equiv=\"refresh\"" in resp.data
+    assert b"pollStatus" in resp.data
 
 
 def test_job_status_renders_done_with_clips(client):

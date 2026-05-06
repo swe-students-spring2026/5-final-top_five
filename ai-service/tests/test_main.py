@@ -1,4 +1,6 @@
 from unittest.mock import patch, MagicMock
+from datetime import datetime
+from bson import ObjectId
 from fastapi.testclient import TestClient
 
 import main
@@ -52,3 +54,68 @@ def test_create_job_runs_pipeline_and_writes_clips():
         assert "transcribing" in statuses
         assert "ranking" in statuses
         assert "cutting" in statuses
+
+
+def test_clean_for_json_handles_objectid():
+    oid = ObjectId()
+    assert main.clean_for_json(oid) == str(oid)
+
+
+def test_clean_for_json_handles_datetime():
+    dt = datetime(2021, 1, 1, 12, 0, 0)
+    assert main.clean_for_json(dt) == "2021-01-01T12:00:00"
+
+
+def test_clean_for_json_handles_list():
+    oid = ObjectId()
+    result = main.clean_for_json([oid, "test"])
+    assert result == [str(oid), "test"]
+
+
+def test_clean_for_json_handles_dict():
+    oid = ObjectId()
+    result = main.clean_for_json({"id": oid, "name": "test"})
+    assert result == {"id": str(oid), "name": "test"}
+
+
+def test_clean_for_json_returns_primitives():
+    assert main.clean_for_json("test") == "test"
+    assert main.clean_for_json(42) == 42
+    assert main.clean_for_json(None) is None
+
+
+def test_get_job_returns_job_and_clips():
+    job_id = "65f0000000000000000000aa"
+    fake_jobs = MagicMock()
+    fake_jobs.find_one.return_value = {"_id": job_id, "status": "done"}
+    
+    fake_clips = MagicMock()
+    fake_clips.find.return_value = [{"rank": 1, "score": 0.9}]
+    
+    fake_db = MagicMock()
+    fake_db.jobs = fake_jobs
+    fake_db.clips = fake_clips
+    
+    with patch.object(main.db, "get_db", return_value=fake_db):
+        client = TestClient(main.app)
+        r = client.get(f"/jobs/{job_id}")
+    
+    assert r.status_code == 200
+    data = r.json()
+    assert data["job"]["_id"] == job_id
+    assert len(data["clips"]) == 1
+
+
+def test_get_job_returns_404_when_not_found():
+    job_id = "65f0000000000000000000aa"
+    fake_jobs = MagicMock()
+    fake_jobs.find_one.return_value = None
+    
+    fake_db = MagicMock()
+    fake_db.jobs = fake_jobs
+    
+    with patch.object(main.db, "get_db", return_value=fake_db):
+        client = TestClient(main.app)
+        r = client.get(f"/jobs/{job_id}")
+    
+    assert r.status_code == 404

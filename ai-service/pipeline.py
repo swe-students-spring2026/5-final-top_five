@@ -97,13 +97,24 @@ def _get_whisper_model() -> WhisperModel:
 
 
 def transcribe_real(video_path: str) -> list[Segment]:
+    import time as _time
+    print(f"[transcribe] Loading model...")
+    start = _time.time()
     model = _get_whisper_model()
+    print(f"[transcribe] Model loaded in {_time.time() - start:.1f}s")
+    
+    print(f"[transcribe] Transcribing: {video_path}")
+    start = _time.time()
     segs, _info = model.transcribe(
         video_path,
         beam_size=1,
         vad_filter=True,
     )
-    return [Segment(start=float(s.start), end=float(s.end), text=s.text) for s in segs]
+    seg_list = list(segs)
+    elapsed = _time.time() - start
+    print(f"[transcribe] Done in {elapsed:.1f}s, {len(seg_list)} segments")
+
+    return [Segment(start=float(s.start), end=float(s.end), text=s.text) for s in seg_list]
 
 
 def transcribe_mock(video_path: str) -> list[Segment]:
@@ -139,6 +150,7 @@ _SCORING_SYSTEM_PROMPT = (
 
 
 def score_windows_real(prompt: str, windows: list[Window]) -> list[ScoredWindow]:
+    import time as _time
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key or not windows:
         return score_windows_mock(prompt, windows)
@@ -150,6 +162,8 @@ def score_windows_real(prompt: str, windows: list[Window]) -> list[ScoredWindow]
     user_msg = "\n".join(user_msg_lines)
 
     try:
+        print(f"[score] Calling OpenRouter with {len(windows)} windows...")
+        start = _time.time()
         resp = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -164,6 +178,8 @@ def score_windows_real(prompt: str, windows: list[Window]) -> list[ScoredWindow]
             },
             timeout=60,
         )
+        elapsed = _time.time() - start
+        print(f"[score] OpenRouter response received in {elapsed:.1f}s")
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^```(?:json)?\s*", "", content)
@@ -196,8 +212,13 @@ def cut_clip_mock(video_path: str, start: float, end: float, out_path: str) -> s
 
 
 def cut_clip_real(video_path: str, start: float, end: float, out_path: str) -> str:
+    import os as _os
     duration = end - start
-
+    
+    # Ensure output dir exists
+    _os.makedirs(_os.path.dirname(out_path) or ".", exist_ok=True)
+    
+    print(f"[cut_clip] Starting ffmpeg: {video_path} [{start}s-{end}s] -> {out_path}")
     subprocess.run(
         [
             "ffmpeg",
@@ -206,10 +227,13 @@ def cut_clip_real(video_path: str, start: float, end: float, out_path: str) -> s
             "-ss", str(start),
             "-t", str(duration),
             "-c:v", "libx264",
+            "-preset", "ultrafast",  # speed up encoding
             "-c:a", "aac",
             out_path,
         ],
         check=True,
+        timeout=300,  # 5 min timeout per clip
     )
+    print(f"[cut_clip] Done: {out_path}")
 
     return out_path

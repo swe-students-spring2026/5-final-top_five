@@ -81,22 +81,36 @@ def get_job(job_id: str):
     }
 
 def _run_job(req: JobRequest) -> None:
+    import time as _time
     database = db.get_db()
+    job_start = _time.time()
+    print(f"\n[job {req.job_id}] Starting job for video: {req.video_path}")
     try:
         db.set_job_status(database, req.job_id, "transcribing")
+        print(f"[job {req.job_id}] Status: transcribing")
+        t0 = _time.time()
         transcribe = pipeline.transcribe_mock if USE_MOCKS else pipeline.transcribe_real
         segments = transcribe(req.video_path)
+        print(f"[job {req.job_id}] Transcribe done in {_time.time() - t0:.1f}s, {len(segments)} segments")
 
         db.set_job_status(database, req.job_id, "ranking")
+        print(f"[job {req.job_id}] Status: ranking")
+        t0 = _time.time()
         windows = pipeline.pack_windows(segments)
+        print(f"[job {req.job_id}] Packed into {len(windows)} windows")
         score = pipeline.score_windows_mock if USE_MOCKS else pipeline.score_windows_real
         scored = score(req.prompt, windows)
+        print(f"[job {req.job_id}] Scoring done in {_time.time() - t0:.1f}s")
         top = pipeline.select_top_n(scored, req.num_clips)
+        print(f"[job {req.job_id}] Selected top {len(top)} clips")
 
         db.set_job_status(database, req.job_id, "cutting")
         cut_clip = pipeline.cut_clip_mock if USE_MOCKS else pipeline.cut_clip_real
+        print(f"[job {req.job_id}] Status: cutting")
+        t0 = _time.time()
         for rank, sw in enumerate(top, start=1):
             out_path = str(CLIPS_DIR / f"{req.job_id}_{rank}.mp4")
+            print(f"[job {req.job_id}] Cutting clip {rank}/{len(top)}...")
             cut_clip(req.video_path, sw.window.start, sw.window.end, out_path)
             db.insert_clip(
                 database,
@@ -109,8 +123,12 @@ def _run_job(req: JobRequest) -> None:
                 transcript=sw.window.text,
                 storage_path=out_path,
             )
+        print(f"[job {req.job_id}] Cutting done in {_time.time() - t0:.1f}s")
 
         db.set_job_status(database, req.job_id, "done")
+        total = _time.time() - job_start
+        print(f"[job {req.job_id}] ✓ DONE in {total:.1f}s total")
     except Exception as exc:
+        print(f"[job {req.job_id}] ✗ FAILED: {exc}")
         db.set_job_status(database, req.job_id, "failed", error=str(exc))
         raise
