@@ -89,13 +89,15 @@ def _run_job(req: JobRequest) -> None:
 
         db.set_job_status(database, req.job_id, "ranking")
         windows = pipeline.pack_windows(segments)
-        scored = pipeline.score_windows_mock(req.prompt, windows)
+        score = pipeline.score_windows_mock if USE_MOCKS else pipeline.score_windows_real
+        scored = score(req.prompt, windows)
         top = pipeline.select_top_n(scored, req.num_clips)
 
         db.set_job_status(database, req.job_id, "cutting")
+        cut_clip = pipeline.cut_clip_mock if USE_MOCKS else pipeline.cut_clip_real
         for rank, sw in enumerate(top, start=1):
             out_path = str(CLIPS_DIR / f"{req.job_id}_{rank}.mp4")
-            pipeline.cut_clip_real(req.video_path, sw.window.start, sw.window.end, out_path)
+            cut_clip(req.video_path, sw.window.start, sw.window.end, out_path)
             db.insert_clip(
                 database,
                 job_id=req.job_id,

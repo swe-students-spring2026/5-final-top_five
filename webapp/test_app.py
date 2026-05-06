@@ -101,9 +101,12 @@ def test_generate_clips_marks_failed_when_ai_service_unreachable(client):
         })
 
     assert resp.status_code == 302
-    fake_jobs.update_one.assert_called_once()
-    update = fake_jobs.update_one.call_args.args[1]["$set"]
-    assert update["status"] == "failed"
+    failure_calls = [
+        c for c in fake_jobs.update_one.call_args_list
+        if c.args[1]["$set"].get("status") == "failed"
+    ]
+    assert len(failure_calls) == 1
+    update = failure_calls[0].args[1]["$set"]
     assert "ai-service unreachable" in update["error"]
 
 
@@ -155,8 +158,8 @@ def test_job_status_renders_done_with_clips(client):
     fake_clips = MagicMock()
     cursor = MagicMock()
     cursor.sort.return_value = [
-        {"rank": 1, "score": 9.0, "start_sec": 10.0, "end_sec": 30.0, "transcript": "alien stuff"},
-        {"rank": 2, "score": 7.5, "start_sec": 50.0, "end_sec": 70.0, "transcript": "more aliens"},
+        {"rank": 1, "score": 9.0, "start_sec": 10.0, "end_sec": 30.0, "transcript": "alien stuff", "storage_path": "/data/clips/abc_1.mp4"},
+        {"rank": 2, "score": 7.5, "start_sec": 50.0, "end_sec": 70.0, "transcript": "more aliens", "storage_path": "/data/clips/abc_2.mp4"},
     ]
     fake_clips.find.return_value = cursor
 

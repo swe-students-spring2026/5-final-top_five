@@ -127,6 +127,9 @@ venv.bak/
 # ai-service runtime output
 ai-service/data/
 
+# webapp uploads
+webapp/uploads/
+
 # Spyder project settings
 .spyderproject
 .spyproject
