@@ -146,7 +146,9 @@ def history():
     return render_template("history.html", jobs=jobs)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=3000)
+    import os
+    port = int(os.environ.get("PORT", 3000))
+    app.run(host="0.0.0.0", port=port)
 
 
 # python -m pipenv run python app.py
