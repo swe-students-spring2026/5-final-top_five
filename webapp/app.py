@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, Response
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+import tempfile
+from datetime import datetime, timezone
 from bson import ObjectId
 import requests
 from pymongo import MongoClient
+from gridfs import GridFSBucket
 from dotenv import load_dotenv
 from flask import send_from_directory
 from pathlib import Path
@@ -29,6 +31,7 @@ client = MongoClient(
     serverSelectionTimeoutMS=5000,
 )
 db = client["topfive"]
+videos_bucket = GridFSBucket(db, bucket_name="videos")
 
 
 def to_json_safe(value):
@@ -66,13 +69,12 @@ def upload_video():
         return render_template("index.html", error="Only video files are allowed.")
 
     filename = secure_filename(video.filename)
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    video.save(filepath)
 
     try:
+        gridfs_id = videos_bucket.upload_from_stream(filename, video.stream)
         db.videos.insert_one({
             "filename": filename,
-            "filepath": filepath,
+            "gridfs_id": gridfs_id,
             "uploaded_at": datetime.utcnow()
         })
     except Exception as exc:
@@ -81,7 +83,7 @@ def upload_video():
             error=f"Database connection failed. Check MONGO_URI. ({exc})",
         ), 500
 
-    return render_template("upload.html", filename=filename)
+    return render_template("upload.html", filename=filename, video_id=str(gridfs_id))
 
 @app.route("/generate-clips", methods=["POST"])
 def generate_clips():
@@ -92,7 +94,8 @@ def generate_clips():
     if not prompt:
         return render_template("upload.html", filename=filename, error="Please enter a prompt.")
 
-    video = db.videos.find_one({"filename": filename})
+    video_id = request.form.get("video_id")
+    video = db.videos.find_one({"gridfs_id": ObjectId(video_id)}) if video_id else None
     if not video:
         return render_template("upload.html", filename=filename, error="Video not found. Please upload again.")
 
@@ -102,27 +105,26 @@ def generate_clips():
         "num_clips": num_clips,
         "status": "queued",
         "error": None,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
         "completed_at": None,
         "clip_ids": [],
     })
 
     job_id = str(job_result.inserted_id)
 
-    db.jobs.update_one(
-        {"_id": job_result.inserted_id},
-        {"$set": {"job_id": job_id}}
-    )
-    print("Sending job_id:", str(job_id))
-    print("Sending video_path:", os.path.abspath(video["filepath"]))
-
     try:
+        suffix = os.path.splitext(filename)[1] or ".mp4"
+        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        stream = videos_bucket.open_download_stream(ObjectId(video_id))
+        tmp.write(stream.read())
+        tmp.close()
+
         resp = requests.post(
             f"{AI_SERVICE_URL}/jobs",
             json={
                 "job_id": job_id,
                 "video_id": str(video["_id"]),
-                "video_path": os.path.abspath(video["filepath"]),
+                "video_path": tmp.name,
                 "prompt": prompt,
                 "num_clips": num_clips,
             },
@@ -173,6 +175,12 @@ def job_status_api(job_id):
     job_data = to_json_safe(job)
     
     return {"job": job_data}, 200
+
+@app.route("/video/<video_id>")
+def serve_video(video_id):
+    stream = videos_bucket.open_download_stream(ObjectId(video_id))
+    return Response(stream, mimetype="video/mp4")
+
 
 @app.route("/clips/<filename>")
 def serve_clip(filename):
