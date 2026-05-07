@@ -20,6 +20,8 @@ load_dotenv(REPO_DIR / "ai-service" / ".env")
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "webm"}
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "/tmp/uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8000")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
