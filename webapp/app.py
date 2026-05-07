@@ -8,7 +8,7 @@ import requests
 from pymongo import MongoClient
 from gridfs import GridFSBucket
 from dotenv import load_dotenv
-from flask import send_from_directory
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,6 +32,7 @@ client = MongoClient(
 )
 db = client["topfive"]
 videos_bucket = GridFSBucket(db, bucket_name="videos")
+clips_grid = GridFSBucket(db, bucket_name="clips_grid")
 
 
 def to_json_safe(value):
@@ -151,12 +152,26 @@ def job_status(job_id):
     if not job:
         return render_template("job.html", error="Job not found."), 404
 
-    clips = list(db.clips.find({
-        "$or": [
-            {"job_id": job_id},
-            {"job_id": oid}
-        ]
-    }).sort("rank", 1)) if job["status"] == "done" else []
+    clips = []
+    if job["status"] == "done":
+        clips = list(db.clips.find({
+            "$or": [{"job_id": job_id}, {"job_id": oid}]
+        }).sort("rank", 1))
+
+        for clip in clips:
+            if not clip.get("clips_grid_id"):
+                storage_path = clip.get("storage_path", "")
+                if not os.path.isabs(storage_path):
+                    ai_dir = REPO_DIR / "ai-service"
+                    storage_path = str(ai_dir / storage_path)
+                if os.path.exists(storage_path):
+                    with open(storage_path, "rb") as f:
+                        gid = clips_grid.upload_from_stream(
+                            os.path.basename(storage_path), f,
+                            metadata={"job_id": job_id, "rank": clip.get("rank")}
+                        )
+                    db.clips.update_one({"_id": clip["_id"]}, {"$set": {"clips_grid_id": gid}})
+                    clip["clips_grid_id"] = gid
 
     return render_template("job.html", job=job, clips=clips, job_id=job_id)
 
@@ -182,9 +197,10 @@ def serve_video(video_id):
     return Response(stream, mimetype="video/mp4")
 
 
-@app.route("/clips/<filename>")
-def serve_clip(filename):
-    return send_from_directory("../ai-service/data/clips", filename)
+@app.route("/clip-video/<gridfs_id>")
+def serve_clip(gridfs_id):
+    stream = clips_grid.open_download_stream(ObjectId(gridfs_id))
+    return Response(stream, mimetype="video/mp4")
 
 
 @app.route("/history")
